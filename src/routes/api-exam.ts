@@ -1,5 +1,5 @@
 import {Router, Request, Response} from 'express';
-
+import cors from 'cors';
 import * as config from '../inc/config.js';
 import {ErrorCodes, Roles, AUTHENTICATED_ROLES, API, API_COURSE, UserInfo, CourseInfo,API_CLASS, HIGHER_ROLES, API_EXERCISE, API_EXAM} from '../inc/constants.js';
 import db from '../inc/database.js';
@@ -9,26 +9,26 @@ import {apiRoute, bindApiWithRoute, apiValidatorParam, ApiRequest} from '../inc/
 
 const router = Router();
 export default router;
-
+router.use(cors({
+	origin: '*',
+	methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  }));
 bindApiWithRoute(API_EXAM.EXAM__CREATE, api => apiRoute(router, api,
 	apiValidatorParam(api, 'class_id').notEmpty().isInt().toInt(),
 	apiValidatorParam(api, 'start_date').notEmpty().isDate().toDate(),
 	apiValidatorParam(api, 'end_date').notEmpty().isDate().toDate(),
     apiValidatorParam(api, 'questions').isArray().toArray(),
-    apiValidatorParam(api, 'questions.*').notEmpty().isInt().toInt(),
-	
+	//[1,2,3,4,]
+	//[{'input':'dat khoe vl','output':'vvv','timeout':'dd'},{dhbjscv}]
 	async (req: ApiRequest, res: Response) => {
 		const userInfo = await req.ctx.getUser()?.getInfo() as UserInfo;
 		const queryResult = await db.query("SELECT teacher_id FROM class WHERE id = ?", [req.api.params.class_id])
-		const creatorId = queryResult[0]['user_id']
+		const creatorId = queryResult[0]['teacher_id']
 
-		if (!AUTHENTICATED_ROLES.includes(userInfo.role))
+		const notAdmin = userInfo.role != Roles.SYSTEM_ADMIN
+
+		if (!(!notAdmin || (userInfo.id == creatorId)))
 			return req.api.sendError(ErrorCodes.NO_PERMISSION);
-
-		// const notAdmin = userInfo.role != Roles.SYSTEM_ADMIN
-
-		// if (!(!notAdmin || (userInfo.id == creatorId)))
-		// 	return req.api.sendError(ErrorCodes.NO_PERMISSION);
 
 		const newExamId = (await db.insert('exam', {
 			class_id: req.api.params.class_id,
