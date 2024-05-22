@@ -19,7 +19,8 @@ dotenv.config();
 console.log(chalk.yellow(`Running in ${process.env.NODE_ENV} mode...`));
 
 
-utils.prepateDataFolders();
+// utils.prepateDataFolders();
+utils.prepateDataFolders()
 
 
 
